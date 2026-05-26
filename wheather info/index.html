@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Chromatic Weather | Past & Present Climate Visualizer</title>
+    <!-- Google Fonts + Font Awesome 6 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%);
+            font-family: 'Inter', sans-serif;
+            padding: 2rem 1.5rem;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* animated glass orbs (background life) */
+        body::before {
+            content: '';
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(56,189,248,0.15) 0%, rgba(0,0,0,0) 70%);
+            top: -200px;
+            left: -200px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(168,85,247,0.12) 0%, rgba(0,0,0,0) 70%);
+            bottom: -250px;
+            right: -200px;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ========= HERO HEADER ========= */
+        .hero-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .main-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(145deg, #FFEDB0, #FFB347, #FF6B6B, #A78BFA);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradientShift 8s ease infinite;
+            letter-spacing: -1px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .subhead {
+            color: #94A3F0;
+            margin-top: 0.25rem;
+            font-weight: 500;
+            border-bottom: 1px dashed #3b4b8e;
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        /* search & date bar */
+        .control-panel {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            border-radius: 3rem;
+            padding: 0.8rem 1.5rem;
+            margin: 1.8rem 0 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            align-items: center;
+            border: 1px solid rgba(255,255,240,0.15);
+            box-shadow: 0 20px 30px -15px rgba(0,0,0,0.4);
+        }
+        .input-group {
+            display: flex;
+            background: #0B1120;
+            border-radius: 60px;
+            border: 1px solid #334155;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .input-group:focus-within {
+            border-color: #F97316;
+            box-shadow: 0 0 0 3px rgba(249,115,22,0.3);
+        }
+        .input-group i {
+            padding: 0 0 0 1.2rem;
+            line-height: 3rem;
+            color: #F97316;
+        }
+        .input-group input {
+            background: transparent;
+            border: none;
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+            width: 220px;
+            color: #F1F5F9;
+            font-weight: 500;
+            outline: none;
+        }
+        .date-group {
+            background: #0B1120;
+            border-radius: 60px;
+            border: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0 1rem;
+        }
+        .date-group i {
+            color: #38BDF8;
+        }
+        .date-group input {
+            background: transparent;
+            border: none;
+            padding: 0.8rem 0;
+            color: #F1F5F9;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+        }
+        .search-action {
+            background: linear-gradient(95deg, #F97316, #EA580C);
+            border: none;
+            padding: 0.7rem 2rem;
+            border-radius: 40px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-action:hover {
+            background: linear-gradient(95deg, #FD8B2C, #F5650A);
+            transform: scale(1.02);
+            box-shadow: 0 8px 18px rgba(249,115,22,0.4);
+        }
+
+        /* current / historical badge */
+        .mode-badge {
+            background: #1E293B;
+            border-radius: 100px;
+            padding: 0.3rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #FACC15;
+        }
+
+        /* weather grid (colorful + improved readability) */
+        .weather-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 1.8rem;
+            margin-top: 1rem;
+        }
+
+        .glass-card {
+            background: rgba(10, 20, 35, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            padding: 1.6rem;
+            border: 1px solid rgba(255,255,245,0.2);
+            transition: all 0.2s;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        }
+        .big-temp-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .temp-now {
+            font-size: 4.8rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            background: linear-gradient(135deg, #FFF9C4, #FFE9A7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .condition-badge {
+            background: #FFB34720;
+            padding: 0.4rem 1rem;
+            border-radius: 100px;
+            font-weight: 600;
+            color: #FFD966;
+        }
+        .detail-strip {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .metric-tile {
+            background: #0F182C;
+            border-radius: 1.3rem;
+            padding: 0.8rem 1rem;
+            flex: 1;
+            text-align: center;
+            border-left: 3px solid #F97316;
+        }
+        .metric-tile i {
+            font-size: 1.3rem;
+            color: #5C9EFF;
+        }
+        .metric-tile .label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #9CADD9;
+        }
+        .metric-tile .value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #F5F9FF;
+        }
+
+        .right-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .info-panel {
+            background: rgba(5, 15, 30, 0.8);
+            border-radius: 1.8rem;
+            padding: 1.2rem;
+        }
+        .panel-title {
+            font-weight: 700;
+            border-left: 4px solid #F97316;
+            padding-left: 12px;
+            margin-bottom: 1rem;
+            color: #FFE5B4;
+        }
+        .grid-2col {
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        @media (max-width: 800px) {
+            .weather-dashboard {
+                grid-template-columns: 1fr;
+            }
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .input-group input {
+                width: 100%;
+            }
+            .main-title {
+                font-size: 2.2rem;
+            }
+        }
+        .footer-note {
+            text-align: center;
+            margin-top: 2.5rem;
+            font-size: 0.7rem;
+            color: #6F88B0;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="hero-header">
+        <h1 class="main-title"><i class="fas fa-cloud-sun-rain"></i> WEATHER TODAY <i class="fas fa-calendar-week"></i></h1>
+        <div class="subhead">🌎 high‑definition climate • past, present & hyperlocal</div>
+    </div>
+
+    <div class="control-panel">
+        <div class="input-group">
+            <i class="fas fa-city"></i>
+            <input type="text" id="cityInput" placeholder="e.g., Tokyo, New Delhi, London" value="Paris">
+        </div>
+        <div class="date-group">
+            <i class="fas fa-history"></i>
+            <input type="date" id="datePicker">
+            <span class="mode-badge" id="modeLabel">CURRENT</span>
+        </div>
+        <button id="fetchBtn" class="search-action"><i class="fas fa-arrow-right-to-bracket"></i> Discover</button>
+    </div>
+
+    <div id="weatherDisplayArea">
+        <!-- dynamic loading state -->
+        <div style="text-align: center; padding: 3rem; color: #A9C0F0;"><i class="fas fa-spinner fa-pulse fa-2x"></i><br>Loading vibrant forecast...</div>
+    </div>
+    <div class="footer-note">
+        ✨ Historical data available for any date after 2010 • powered by WeatherAPI.com
+    </div>
+</div>
+
+<script>
+    const API_KEY = "94d32e055fd446349d4214404262605";
+    const CURRENT_URL = "https://api.weatherapi.com/v1/current.json";
+    const HISTORY_URL = "https://api.weatherapi.com/v1/history.json";
+
+    const cityInput = document.getElementById('cityInput');
+    const datePicker = document.getElementById('datePicker');
+    const fetchBtn = document.getElementById('fetchBtn');
+    const weatherDisplay = document.getElementById('weatherDisplayArea');
+    const modeLabel = document.getElementById('modeLabel');
+
+    // set default date picker placeholder
+    datePicker.value = "";
+    let currentMode = "current"; // 'current' or 'history'
+
+    function formatLocalTime(localtimeStr) {
+        if(!localtimeStr) return { date: 'N/A', time: '' };
+        const [datePart, timePart] = localtimeStr.split(' ');
+        const d = new Date(datePart);
+        const formattedDate = d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+        return { date: formattedDate, time: timePart };
+    }
+
+    function getAqiLevel(aqiValue) {
+        if (!aqiValue && aqiValue !== 0) return 'N/A';
+        const val = Number(aqiValue);
+        if(val === 1) return '🌿 Good (1)';
+        if(val === 2) return '😐 Moderate (2)';
+        if(val === 3) return '⚠️ Unhealthy for sensitive (3)';
+        if(val === 4) return '🚨 Unhealthy (4)';
+        if(val === 5) return '☠️ Very Unhealthy (5)';
+        return val;
+    }
+
+    // universal render (handles both current and historical data)
+    function renderWeather(data, isHistorical = false, queryDate = null) {
+        const location = data.location;
+        const current = data.current;
+        const cityDisplay = `${location.name}, ${location.country}`;
+        const localtime = location.localtime;
+        const { date, time } = formatLocalTime(localtime);
+        
+        const condition = current.condition;
+        const temp = current.temp_c;
+        const feelsLike = current.feelslike_c;
+        const humidity = current.humidity;
+        const windKph = current.wind_kph;
+        const windDir = current.wind_dir;
+        const pressure = current.pressure_mb;
+        const uv = current.uv;
+        const vis = current.vis_km;
+        const gust = current.gust_kph;
+        const iconUrl = condition.icon;
+        
+        const aqiIdx = current.air_quality ? current.air_quality["us-epa-index"] : null;
+        const pm25 = current.air_quality ? current.air_quality.pm2_5 : null;
+        const aqiText = getAqiLevel(aqiIdx);
+        
+        const headerBadge = isHistorical ? `<span style="background:#6D28D9; padding:0.2rem 0.8rem; border-radius:30px; font-size:0.7rem;">📆 HISTORICAL: ${queryDate}</span>` : `<span style="background:#EA580C; padding:0.2rem 0.8rem; border-radius:30px; font-size:0.7rem;">⚡ LIVE CONDITIONS</span>`;
+        
+        const html = `
+            <div class="weather-dashboard">
+                <!-- LEFT COLUMN: MAIN WEATHER CARD -->
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap:wrap;">
+                        <h2 style="color:#FFE2B5; font-size:1.8rem;"><i class="fas fa-location-dot" style="color:#F97316;"></i> ${escapeHtml(cityDisplay)}</h2>
+                        ${headerBadge}
+                    </div>
+                    <div style="margin-top: 6px; margin-bottom: 12px;"><i class="far fa-calendar-alt"></i> ${date} &nbsp;|&nbsp; <i class="far fa-clock"></i> ${time}</div>
+                    
+                    <div class="big-temp-wrap">
+                        <div>
+                            <span class="temp-now">${Math.round(temp)}°C</span>
+                            <div style="font-size:1.1rem; margin-top:4px;">Feels like ${Math.round(feelsLike)}°</div>
+                            <div class="condition-badge" style="margin-top: 8px;"><i class="fas fa-cloud-sun"></i> ${escapeHtml(condition.text)}</div>
+                        </div>
+                        <div><img src="${iconUrl}" alt="weather icon" style="width:85px; filter:drop-shadow(0 6px 12px rgba(0,0,0,0.4));"></div>
+                    </div>
+                    
+                    <div class="detail-strip">
+                        <div class="metric-tile"><i class="fas fa-tint"></i><div class="label">HUMIDITY</div><div class="value">${humidity}%</div></div>
+                        <div class="metric-tile"><i class="fas fa-eye"></i><div class="label">VISIBILITY</div><div class="value">${vis} km</div></div>
+                        <div class="metric-tile"><i class="fas fa-sun"></i><div class="label">UV INDEX</div><div class="value">${uv}</div></div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: WIND + AIR + MORE -->
+                <div class="right-stack">
+                    <div class="info-panel">
+                        <div class="panel-title"><i class="fas fa-wind" style="margin-right:8px;"></i> WIND & PRESSURE</div>
+                        <div class="grid-2col">
+                            <div class="metric-tile" style="background:#131E33;"><div class="label">WIND SPEED</div><div class="value">${windKph} km/h</div></div>
+                            <div class="metric-tile" style="background:#131E33;"><div class="label">GUSTS</div><div class="value">${gust} km/h</div></div>
+                            <div class="metric-tile" style="background:#131E33;"><div class="label">DIRECTION</div><div class="value">${windDir}</div></div>
+                        </div>
+                        <div style="margin-top:12px; background:#0B1428; border-radius:1rem; padding:0.7rem; text-align:center;">
+                            <i class="fas fa-gauge-high"></i> Pressure: ${pressure} mb &nbsp;&nbsp;| &nbsp;<i class="fas fa-temperature-low"></i> Humidity: ${humidity}%
+                        </div>
+                    </div>
+
+                    <div class="info-panel">
+                        <div class="panel-title"><i class="fas fa-leaf"></i> AIR QUALITY & HEALTH METRICS</div>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <div style="flex:1; background:#0F1A2F; border-radius:1.2rem; padding:10px; text-align:center;">
+                                <div class="label">US EPA INDEX</div>
+                                <div class="value" style="font-size:1.2rem;">${aqiText}</div>
+                            </div>
+                            ${pm25 ? `<div style="flex:1; background:#0F1A2F; border-radius:1.2rem; padding:10px; text-align:center;">
+                                <div class="label">PM2.5 (µg/m³)</div>
+                                <div class="value">${pm25.toFixed(1)}</div>
+                            </div>` : ''}
+                            <div style="flex:1; background:#0F1A2F; border-radius:1.2rem; padding:10px; text-align:center;">
+                                <div class="label">FEELS LIKE</div>
+                                <div class="value">${Math.round(feelsLike)}°C</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:12px; font-size:0.7rem; color:#B9C8FF;"><i class="fas fa-info-circle"></i> ${isHistorical ? "Historical weather report based on selected date." : "Real-time hyperlocal data from WeatherAPI"}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        weatherDisplay.innerHTML = html;
+    }
+
+    function showError(msg) {
+        weatherDisplay.innerHTML = `<div style="background:#FFE4E0; color:#AA1F1F; border-radius:1.5rem; padding:1.8rem; text-align:center; border-left: 6px solid red;"><i class="fas fa-circle-exclamation"></i> <strong>⚠️ ${escapeHtml(msg)}</strong><br><span style="font-size:0.8rem;">Check city name or date (historical requires format yyyy-mm-dd and valid date from 2010 onwards)</span></div>`;
+    }
+
+    function escapeHtml(str) {
+        if(!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if(m === '&') return '&amp;';
+            if(m === '<') return '&lt;';
+            if(m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    async function fetchWeatherData() {
+        let city = cityInput.value.trim();
+        if(!city) {
+            showError("Please enter a city name.");
+            return;
+        }
+        
+        const selectedDate = datePicker.value;
+        let isHistorical = false;
+        let queryDate = null;
+        
+        if(selectedDate) {
+            isHistorical = true;
+            queryDate = selectedDate;
+            modeLabel.innerText = "📜 HISTORICAL MODE";
+            modeLabel.style.background = "#6B21A5";
+        } else {
+            isHistorical = false;
+            modeLabel.innerText = "⚡ CURRENT";
+            modeLabel.style.background = "#1E293B";
+        }
+        
+        weatherDisplay.innerHTML = `<div style="text-align:center; padding: 2rem;"><i class="fas fa-sun fa-spin fa-2x"></i><br>${isHistorical ? 'Fetching past climate data...' : 'Scanning live weather feeds...'}</div>`;
+        
+        try {
+            let url;
+            if(isHistorical) {
+                // history endpoint requires 'dt' parameter
+                url = `${HISTORY_URL}?key=${API_KEY}&q=${encodeURIComponent(city)}&dt=${queryDate}&aqi=yes`;
+            } else {
+                url = `${CURRENT_URL}?key=${API_KEY}&q=${encodeURIComponent(city)}&aqi=yes`;
+            }
+            const response = await fetch(url);
+            if(!response.ok) {
+                const errData = await response.json();
+                let errMsg = errData.error?.message || `HTTP ${response.status}`;
+                if(errMsg.includes("date") || response.status === 400) errMsg = "Invalid or too old date. Historical data works best from 2010 to yesterday.";
+                throw new Error(errMsg);
+            }
+            const data = await response.json();
+            // For history API, the structure is slightly nested: data.forecast.forecastday[0].day , but also current weather on the day? Actually history returns 'forecast' object with day info and also 'current' inside forecastday? Let's adapt: the API includes .forecast.forecastday[0].hour etc.
+            // to keep unified, history returns same 'location' and inside 'forecast' array. we will extract 'day' and also 'astro' but we need main metrics. Use forecastday[0].day for main temp + condition.
+            if(isHistorical && data.forecast && data.forecast.forecastday.length) {
+                const dayData = data.forecast.forecastday[0].day;
+                const location = data.location;
+                const conditionObj = dayData.condition;
+                // Build a synthetic 'current' object that matches our render function expectations
+                const syntheticCurrent = {
+                    temp_c: dayData.avgtemp_c,
+                    feelslike_c: dayData.avgtemp_c,
+                    humidity: dayData.avghumidity,
+                    wind_kph: dayData.maxwind_kph,
+                    wind_dir: "N/A",
+                    pressure_mb: 1013, // not provided in day summary exactly, but default
+                    uv: dayData.uv,
+                    vis_km: 10,
+                    gust_kph: dayData.maxwind_kph,
+                    condition: conditionObj,
+                    air_quality: null
+                };
+                const syntheticData = { location, current: syntheticCurrent };
+                renderWeather(syntheticData, true, queryDate);
+            } else if(!isHistorical) {
+                renderWeather(data, false);
+            } else {
+                throw new Error("No historical data for this specific date. Try another day.");
+            }
+        } catch(err) {
+            console.error(err);
+            showError(err.message || "Connection error. Check API availability or date range.");
+        }
+    }
+
+    fetchBtn.addEventListener('click', fetchWeatherData);
+    cityInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') fetchWeatherData(); });
+    // initial default load: Paris (live)
+    window.addEventListener('DOMContentLoaded', () => {
+        cityInput.value = "Paris";
+        fetchWeatherData();
+    });
+</script>
+</body>
+</html>
